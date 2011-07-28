@@ -368,7 +368,7 @@ class LsiModel(interfaces.TransformationABC):
                         self.projection.merge(update, decay=decay)
                         del update
                         logger.info("processed documents up to #%s" % doc_no)
-                        self.print_topics(5)
+                        self.log_topics(5)
 
                 # wait for all workers to finish (distributed version only)
                 if self.dispatcher:
@@ -452,6 +452,14 @@ class LsiModel(interfaces.TransformationABC):
 
 
     def print_topics(self, num_topics=5, num_words=10):
+        for i in xrange(min(num_topics, self.num_topics)):
+            if i < len(self.projection.s):
+                print("topic #%i(%.3f): %s" %
+                      (i, self.projection.s[i],
+                       self.print_topic(i, topn=num_words)))
+
+
+    def log_topics(self, num_topics=5, num_words=10):
         for i in xrange(min(num_topics, self.num_topics)):
             if i < len(self.projection.s):
                 logger.info("topic #%i(%.3f): %s" %
