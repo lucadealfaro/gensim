@@ -151,6 +151,7 @@ class WikiCorpus(TextCorpus):
         appear in at least `noBelow` documents are kept).
         """
         self.fname = fname
+        self.page_id = []
         if dictionary is None:
             self.dictionary = Dictionary(self.get_texts())
             self.dictionary.filter_extremes(no_below=no_below, no_above=0.1, keep_n=keep_words)
@@ -173,8 +174,13 @@ class WikiCorpus(TextCorpus):
         """
         articles, articles_all = 0, 0
         intext, positions = False, 0
+        self.page_id = [] # To re-initialize it, as we will be refilling it.
         for lineno, line in enumerate(bz2.BZ2File(self.fname)):
+            if line.startswith('    <id>'):
+                # Stores the sequence of page_ids.
+                self.page_id.append(int(line[8:line.find('<', 8)]))
             if line.startswith('      <text'):
+                # Processes text in page.
                 intext = True
                 line = line[line.find('>') + 1 : ]
                 lines = [line]
@@ -201,6 +207,12 @@ class WikiCorpus(TextCorpus):
                      " (total %i articles before pruning)" %
                      (articles, positions, articles_all))
         self.length = articles # cache corpus length
+
+
+    def save_page_ids_as_text(self, file_name):
+        with open(file_name, 'w') as f:
+            for id in self.page_id:
+                f.write("%d\n" % id)
 #endclass WikiCorpus
 
 
