@@ -175,10 +175,12 @@ class WikiCorpus(TextCorpus):
         articles, articles_all = 0, 0
         intext, positions = False, 0
         self.page_id = [] # To re-initialize it, as we will be refilling it.
+        id_of_page = -1 # To ensure it is initialized.
         for lineno, line in enumerate(bz2.BZ2File(self.fname)):
             if line.startswith('    <id>'):
-                # Stores the sequence of page_ids.
-                self.page_id.append(int(line[8:line.find('<', 8)]))
+                # Temporarily stores the page_id.  We cannot put it in the page_id list yet,
+                # as the page might be filtered out later.
+                id_of_page = int(line[8:line.find('<', 8)])
             if line.startswith('      <text'):
                 # Processes text in page.
                 intext = True
@@ -201,6 +203,8 @@ class WikiCorpus(TextCorpus):
                     else:
                         result = tokenize(text) # text into tokens here
                         positions += len(result)
+                    # We are now sure that the page text is part of the corpus.
+                    self.page_id.append(id_of_page)
                     yield result
 
         logger.info("finished iterating over Wikipedia corpus of %i documents with %i positions"
