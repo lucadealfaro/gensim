@@ -52,6 +52,10 @@ DEFAULT_DICT_SIZE = 100000
 # Ignore articles shorter than ARTICLE_MIN_CHARS characters (after preprocessing).
 ARTICLE_MIN_CHARS = 500
 
+# How many times is the title of a page repeated, to create strong correlation
+# between title words, and the page as a topic.
+TITLE_REPETITIONS = 10
+
 
 RE_P0 = re.compile('<!--.*?-->', re.DOTALL | re.UNICODE) # comments
 RE_P1 = re.compile('<ref([> ].*?)(</ref>|/>)', re.DOTALL | re.UNICODE) # footnotes
@@ -181,31 +185,34 @@ class WikiCorpus(TextCorpus):
                 # Temporarily stores the page_id.  We cannot put it in the page_id list yet,
                 # as the page might be filtered out later.
                 id_of_page = int(line[8:line.find('<', 8)])
+            if line.startswith('    <title>'):
+                # Temporarily stores the title, to then repeat it a controllable number of times.
+                title_of_page = line[11:line.find('</title>', 11)] + '\n'
+                lines = [title_of_page * TITLE_REPETITIONS]
             if line.startswith('      <text'):
                 # Processes text in page.
                 intext = True
                 line = line[line.find('>') + 1 : ]
-                lines = [line]
-            elif intext:
+            if intext:
                 lines.append(line)
-            pos = line.find('</text>') # can be on the same line as <text>
-            if pos >= 0:
-                articles_all += 1
-                intext = False
-                if not lines:
-                    continue
-                lines[-1] = line[:pos]
-                text = filter_wiki(''.join(lines))
-                if len(text) > ARTICLE_MIN_CHARS: # article redirects are pruned here
-                    articles += 1
-                    if return_raw:
-                        result = text
-                    else:
-                        result = tokenize(text) # text into tokens here
-                        positions += len(result)
-                    # We are now sure that the page text is part of the corpus.
-                    self.page_id.append(id_of_page)
-                    yield result
+                pos = line.find('</text>') # can be on the same line as <text>
+                if pos >= 0:
+                    articles_all += 1
+                    intext = False
+                    if not lines:
+                        continue
+                    lines[-1] = line[:pos]
+                    text = filter_wiki(''.join(lines))
+                    if len(text) > ARTICLE_MIN_CHARS: # article redirects are pruned here
+                        articles += 1
+                        if return_raw:
+                            result = text
+                        else:
+                            result = tokenize(text) # text into tokens here
+                            positions += len(result)
+                        # We are now sure that the page text is part of the corpus.
+                        self.page_id.append(id_of_page)
+                        yield result
 
         logger.info("finished iterating over Wikipedia corpus of %i documents with %i positions"
                      " (total %i articles before pruning)" %
