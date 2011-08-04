@@ -162,31 +162,23 @@ class WikiCorpus(TextCorpus):
         else:
             self.dictionary = dictionary
 
-
-    def get_texts(self, return_raw=False):
-        """
-        Iterate over the dump, returning text version of each article.
-
+    def get_page(self, return_raw=False):
+        """Iterates over pages, yielding a pair (page_id, page_text).
         Only articles of sufficient length are returned (short articles & redirects
         etc are ignored).
-
-        Note that this iterates over the **texts**; if you want vectors, just use
-        the standard corpus interface instead of this function::
-
-        >>> for vec in wiki_corpus:
-        >>>     print vec
-        """
+        """        
         articles, articles_all = 0, 0
         intext, positions = False, 0
         self.page_id = [] # To re-initialize it, as we will be refilling it.
         id_of_page = -1 # To ensure it is initialized.
         for lineno, line in enumerate(bz2.BZ2File(self.fname)):
             if line.startswith('    <id>'):
-                # Temporarily stores the page_id.  We cannot put it in the page_id list yet,
-                # as the page might be filtered out later.
+                # Temporarily stores the page_id.  We cannot put it in the 
+                # page_id list yet, as the page might be filtered out later.
                 id_of_page = int(line[8:line.find('<', 8)])
             if line.startswith('    <title>'):
-                # Temporarily stores the title, to then repeat it a controllable number of times.
+                # Temporarily stores the title, to then repeat it a 
+                # controllable number of times.
                 title_of_page = line[11:line.find('</title>', 11)] + '\n'
                 lines = [title_of_page * TITLE_REPETITIONS]
             if line.startswith('      <text'):
@@ -212,7 +204,7 @@ class WikiCorpus(TextCorpus):
                             positions += len(result)
                         # We are now sure that the page text is part of the corpus.
                         self.page_id.append(id_of_page)
-                        yield result
+                        yield (id_of_page, result)
 
         logger.info("finished iterating over Wikipedia corpus of %i documents with %i positions"
                      " (total %i articles before pruning)" %
@@ -220,10 +212,24 @@ class WikiCorpus(TextCorpus):
         self.length = articles # cache corpus length
 
 
-    def save_page_ids_as_text(self, file_name):
-        with open(file_name, 'w') as f:
-            for id in self.page_id:
-                f.write("%d\n" % id)
+    def get_texts(self, return_raw=False):
+        """
+        Iterate over the dump, returning text version of each article.
+        This is the version that textcorpus expects; it loses the page id.
+        Iterate using get_page if the page_id is important.
+
+        Only articles of sufficient length are returned (short articles & redirects
+        etc are ignored).
+
+        Note that this iterates over the **texts**; if you want vectors, just use
+        the standard corpus interface instead of this function::
+
+        >>> for vec in wiki_corpus:
+        >>>     print vec
+        """
+        for (id_of_page, page_text) in self.get_page(return_raw=return_raw):
+            yield page_text
+
 #endclass WikiCorpus
 
 
