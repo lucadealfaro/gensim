@@ -151,6 +151,7 @@ class WikiCorpus(TextCorpus):
         """
         self.fname = fname
         self.page_id = []
+        self.title_repetitions = title_repetitions
         if dictionary is None:
             self.dictionary = Dictionary(self.get_texts())
             self.dictionary.filter_extremes(no_below=no_below, no_above=0.1, keep_n=keep_words)
