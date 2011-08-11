@@ -13,8 +13,11 @@ from __future__ import with_statement
 import logging
 import re
 import unicodedata
+import os
+import random
 import cPickle
 import itertools
+import tempfile
 from functools import wraps # for `synchronous` function lock
 from htmlentitydefs import name2codepoint as n2cp # for `decode_htmlentities`
 import threading, time
@@ -475,3 +478,7 @@ def toptexts(query, texts, index, n=10):
         result.append((topid, topcosine, texts[topid]))
     return result
 
+
+def randfname(prefix='gensim'):
+    randpart = hex(random.randint(0, 0xffffff))[2:]
+    return os.path.join(tempfile.gettempdir(), prefix + randpart)
