@@ -52,11 +52,6 @@ DEFAULT_DICT_SIZE = 100000
 # Ignore articles shorter than ARTICLE_MIN_CHARS characters (after preprocessing).
 ARTICLE_MIN_CHARS = 500
 
-# How many times is the title of a page repeated, to create strong correlation
-# between title words, and the page as a topic.
-TITLE_REPETITIONS = 10
-
-
 RE_P0 = re.compile('<!--.*?-->', re.DOTALL | re.UNICODE) # comments
 RE_P1 = re.compile('<ref([> ].*?)(</ref>|/>)', re.DOTALL | re.UNICODE) # footnotes
 RE_P2 = re.compile("(\n\[\[[a-z][a-z][\w-]*:[^:\]]+\]\])+$", re.UNICODE) # links to languages
@@ -148,7 +143,7 @@ class WikiCorpus(TextCorpus):
     >>> wiki.saveAsText('wiki_en_vocab200k') # another 8h, creates a file in MatrixMarket format plus file with id->word
 
     """
-    def __init__(self, fname, no_below=20, keep_words=DEFAULT_DICT_SIZE, dictionary=None):
+    def __init__(self, fname, no_below=20, keep_words=DEFAULT_DICT_SIZE, dictionary=None, title_repetitions=1):
         """
         Initialize the corpus. This scans the corpus once, to determine its
         vocabulary (only the first `keep_words` most frequent words that
@@ -180,7 +175,7 @@ class WikiCorpus(TextCorpus):
                 # Temporarily stores the title, to then repeat it a 
                 # controllable number of times.
                 title_of_page = line[11:line.find('</title>', 11)] + '\n'
-                lines = [title_of_page * TITLE_REPETITIONS]
+                lines = [title_of_page * self.title_repetitions]
             if line.startswith('      <text'):
                 # Processes text in page.
                 intext = True
