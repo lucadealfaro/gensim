@@ -67,7 +67,7 @@ RE_P11 = re.compile('<(.*?)>', re.DOTALL | re.UNICODE) # all other tags
 RE_P12 = re.compile('\n(({\|)|(\|-)|(\|}))(.*?)(?=\n)', re.UNICODE) # table formatting
 RE_P13 = re.compile('\n(\||\!)(.*?\|)*([^|]*?)', re.UNICODE) # table cell formatting
 RE_P14 = re.compile('\[\[Category:[^][]*\]\]', re.UNICODE) # categories
-
+RE_SECTIONS = re.compile('==[^=]+==$', re.UNICODE) # sections 
 
 def filter_wiki(raw):
     """
@@ -143,7 +143,7 @@ class WikiCorpus(TextCorpus):
     >>> wiki.saveAsText('wiki_en_vocab200k') # another 8h, creates a file in MatrixMarket format plus file with id->word
 
     """
-    def __init__(self, fname, no_below=20, keep_words=DEFAULT_DICT_SIZE, dictionary=None, title_repetitions=1):
+    def __init__(self, fname, no_below=20, keep_words=DEFAULT_DICT_SIZE, dictionary=None, title_repetitions=1, split_sections=False):
         """
         Initialize the corpus. This scans the corpus once, to determine its
         vocabulary (only the first `keep_words` most frequent words that
@@ -152,6 +152,7 @@ class WikiCorpus(TextCorpus):
         self.fname = fname
         self.page_id = []
         self.title_repetitions = title_repetitions
+        self.split_sections = split_sections
         if dictionary is None:
             self.dictionary = Dictionary(self.get_texts())
             self.dictionary.filter_extremes(no_below=no_below, no_above=0.1, keep_n=keep_words)
@@ -176,12 +177,28 @@ class WikiCorpus(TextCorpus):
                 # Temporarily stores the title, to then repeat it a 
                 # controllable number of times.
                 title_of_page = line[11:line.find('</title>', 11)] + '\n'
-                lines = [title_of_page * self.title_repetitions]
+                if self.split_sections:
+                    lines = []
+                else:
+                    lines = [title_of_page * self.title_repetitions]
             if line.startswith('      <text'):
                 # Processes text in page.
                 intext = True
                 line = line[line.find('>') + 1 : ]
             if intext:
+                # If we split the sections, check if this is the start of a new section.
+                if self.split_sections:
+                    if RE_SECTIONS.match(line):
+                        # Returns the previous text.
+                        text = filter_wiki(''.join(lines))
+                        lines = []
+                        if len(text) > ARTICLE_MIN_CHARS:
+                            if return_raw:
+                                result = text
+                            else:
+                                result = tokenize(text)
+                                positions += len(result)
+                            yield (id_of_page, result)
                 lines.append(line)
                 pos = line.find('</text>') # can be on the same line as <text>
                 if pos >= 0:
