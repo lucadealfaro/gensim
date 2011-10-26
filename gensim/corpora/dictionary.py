@@ -16,6 +16,7 @@ save/loaded from disk (via :func:`Dictionary.save` and :func:`Dictionary.load` m
 
 from __future__ import with_statement
 
+import codecs
 import logging
 import itertools
 import UserDict
@@ -219,7 +220,7 @@ class Dictionary(utils.SaveLoad, UserDict.DictMixin):
         Note: use `save`/`load` to store in binary format instead (pickle).
         """
         logger.info("saving dictionary mapping to %s" % fname)
-        with open(fname, 'wb') as fout:
+        with codecs.open(fname, 'wb', encoding='utf-8') as fout:
             for token, tokenid in sorted(self.token2id.iteritems()):
                 fout.write("%i\t%s\t%i\n" % (tokenid, token, self.dfs[tokenid]))
 
@@ -231,7 +232,7 @@ class Dictionary(utils.SaveLoad, UserDict.DictMixin):
         Mirror function to `save_as_text`.
         """
         result = Dictionary()
-        with open(fname, 'rb') as f:
+        with codecs.open(fname, 'rb', encoding='utf-8') as f:
             for lineno, line in enumerate(f):
                 try:
                     wordid, word, docfreq = line[:-1].split('\t')
